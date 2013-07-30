@@ -2,6 +2,11 @@
 Changelog for package moveit_simple_controller_manager
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.4.2 (2013-07-30)
+------------------
+* ns parameter is now action_ns, get rid of defaults
+* white space fixes (tabs are now spaces)
+
 0.4.1 (2013-07-03)
 ------------------
 * minor updates to package.xml

@@ -2,6 +2,9 @@
 Changelog for package moveit_plugins
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.4.2 (2013-07-30)
+------------------
+
 0.4.1 (2013-07-03)
 ------------------
 * minor updates to package.xml
