@@ -1,6 +1,7 @@
 /*********************************************************************
  * Software License Agreement (BSD License)
  *
+ *  Copyright (c) 2015, Fetch Robotics Inc.
  *  Copyright (c) 2013, Unbounded Robotics Inc.
  *  Copyright (c) 2012, Willow Garage, Inc.
  *  All rights reserved.
@@ -33,57 +34,58 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-/* Author: Michael Ferguson, Ioan Sucan, E. Gil Jones */
+/* Author: Michael Ferguson, Ioan Sucan, E. Gil Jones, Harsh Pandya */
 
-#ifndef MOVEIT_PLUGINS_FOLLOW_TRAJECTORY_CONTROLLER_HANDLE
-#define MOVEIT_PLUGINS_FOLLOW_TRAJECTORY_CONTROLLER_HANDLE
+#ifndef MOVEIT_PLUGINS_MULTI_DOF_FOLLOW_JOINT_CONTROLLER_HANDLE
+#define MOVEIT_PLUGINS_MULTI_DOF_FOLLOW_JOINT_CONTROLLER_HANDLE
 
 #include <moveit_simple_controller_manager/action_based_controller_handle.h>
-#include <control_msgs/FollowJointTrajectoryAction.h>
+#include <control_msgs/MultiDOFFollowJointTrajectoryAction.h>
 
 namespace moveit_simple_controller_manager
 {
 
 /*
- * This is generally used for arms, but could also be used for anything using a control_mgs/FollowJointTrajectoryAction.
+ * This is generally used for multi-dof arm joints, but could also be used for multi-dof robot base,
+ *   or anything using a control_mgs/MultiDOFFollowJointTrajectoryAction.
  */
-class FollowJointTrajectoryControllerHandle : public ActionBasedControllerHandle<control_msgs::FollowJointTrajectoryAction>
+class MultiDOFFollowJointTrajectoryControllerHandle : public ActionBasedControllerHandle<control_msgs::MultiDOFFollowJointTrajectoryAction>
 {
 public:
 
-  FollowJointTrajectoryControllerHandle(const std::string &name, const std::string &action_ns) :
-    ActionBasedControllerHandle<control_msgs::FollowJointTrajectoryAction>(name, action_ns)
+  MultiDOFFollowJointTrajectoryControllerHandle(const std::string &name, const std::string &action_ns) :
+    ActionBasedControllerHandle<control_msgs::MultiDOFFollowJointTrajectoryAction>(name, action_ns)
   {
   }
 
   virtual bool sendTrajectory(const moveit_msgs::RobotTrajectory &trajectory)
   {
-    ROS_DEBUG_STREAM("FollowJointTrajectoryController: new trajectory to " << name_);
+    ROS_DEBUG_STREAM("MultiDOFFollowJointTrajectoryController: new trajectory to " << name_);
 
     if (!controller_action_client_)
       return false;
 
-    /*
-     * This should never happen as the moveit_simple_controller_manager now loads
-     * MULTI_DOF_FOLLOW_JOINT_CONTROLLER_HANDLE for multi-dof joints
-     */
-    if (!trajectory.multi_dof_joint_trajectory.points.empty())
+      /*
+       * This should never happen as the moveit_simple_controller_manager loads
+       * MOVEIT_PLUGINS_FOLLOW_TRAJECTORY_CONTROLLER_HANDLE for single-dof joints
+       */
+    if (!trajectory.joint_trajectory.points.empty())
     {
-      ROS_ERROR("FollowJointTrajectoryController: %s cannot execute multi-dof trajectories. Check moveit_simple_controller_manager to load MOVEIT_PLUGINS_MULTI_DOF_FOLLOW_JOINT_CONTROLLER_HANDLE correctly", name_.c_str());
+      ROS_ERROR("MultiDOFFollowJointTrajectoryController: %s cannot execute single-dof trajectories. Check moveit_simple_controller_manager to load MOVEIT_PLUGINS_FOLLOW_TRAJECTORY_CONTROLLER_HANDLE correctly", name_.c_str());
       return false;
     }
 
     if (done_)
-      ROS_DEBUG_STREAM("FollowJointTrajectoryController: sending trajectory to " << name_);
+      ROS_DEBUG_STREAM("MultiDOFFollowJointTrajectoryController: sending trajectory to " << name_);
     else
-      ROS_DEBUG_STREAM("FollowJointTrajectoryController: sending continuation for the currently executed trajectory to " << name_);
+      ROS_DEBUG_STREAM("MultiDOFFollowJointTrajectoryController: sending continuation for the currently executed trajectory to " << name_);
 
-    control_msgs::FollowJointTrajectoryGoal goal;
-    goal.trajectory = trajectory.joint_trajectory;
-    controller_action_client_->sendGoal(goal,
-                    boost::bind(&FollowJointTrajectoryControllerHandle::controllerDoneCallback, this, _1, _2),
-                    boost::bind(&FollowJointTrajectoryControllerHandle::controllerActiveCallback, this),
-                    boost::bind(&FollowJointTrajectoryControllerHandle::controllerFeedbackCallback, this, _1));
+    control_msgs::MultiDOFFollowJointTrajectoryGoal goal;
+    goal.trajectory = trajectory.multi_dof_joint_trajectory;
+    controller_action_client_-> sendGoal(goal,
+                    boost::bind(&MultiDOFFollowJointTrajectoryControllerHandle::controllerDoneCallback, this, _1, _2),
+                    boost::bind(&MultiDOFFollowJointTrajectoryControllerHandle::controllerActiveCallback, this),
+                    boost::bind(&MultiDOFFollowJointTrajectoryControllerHandle::controllerFeedbackCallback, this, _1));
     done_ = false;
     last_exec_ = moveit_controller_manager::ExecutionStatus::RUNNING;
     return true;
@@ -92,9 +94,9 @@ public:
 protected:
 
   void controllerDoneCallback(const actionlib::SimpleClientGoalState& state,
-                              const control_msgs::FollowJointTrajectoryResultConstPtr& result)
+                              const control_msgs::MultiDOFFollowJointTrajectoryResultConstPtr& result)
   {
-    // Output custom error message for FollowJointTrajectoryResult if necessary
+    // Output custom error message for MultiDOFFollowJointTrajectoryResult if necessary
     switch( result->error_code )
     {
       case control_msgs::FollowJointTrajectoryResult::INVALID_GOAL:
@@ -119,10 +121,10 @@ protected:
 
   void controllerActiveCallback()
   {
-    ROS_DEBUG_STREAM("FollowJointTrajectoryController: " << name_ << " started execution");
+    ROS_DEBUG_STREAM("MultiDOFFollowJointTrajectoryController: " << name_ << " started execution");
   }
 
-  void controllerFeedbackCallback(const control_msgs::FollowJointTrajectoryFeedbackConstPtr& feedback)
+  void controllerFeedbackCallback(const control_msgs::MultiDOFFollowJointTrajectoryFeedbackConstPtr& feedback)
   {
   }
 };
@@ -130,4 +132,4 @@ protected:
 
 } // end namespace moveit_simple_controller_manager
 
-#endif // MOVEIT_PLUGINS_FOLLOW_TRAJECTORY_CONTROLLER_HANDLE
+#endif // MOVEIT_PLUGINS_MULTI_DOF_FOLLOW_JOINT_CONTROLLER_HANDLE
