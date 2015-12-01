@@ -147,14 +147,14 @@ public:
             controllers_[name] = new_handle;
           }
         }
-        else if(type == "MultiDOFFollowJointTrajectory")
+        else if (type == "MultiDOFFollowJointTrajectory")
         {
           new_handle.reset(new MultiDOFFollowJointTrajectoryControllerHandle(name, action_ns));
           if (static_cast<MultiDOFFollowJointTrajectoryControllerHandle*>(new_handle.get())->isConnected())
-	  {
-	    ROS_INFO_STREAM("MoveitSimpleControllerManager: Added MultiDOFFollowJointTrajectory controller for " << name );
-	    controllers_[name] = new_handle;
-	  }
+      	  {
+      	    ROS_INFO_STREAM("MoveitSimpleControllerManager: Added MultiDOFFollowJointTrajectory controller for " << name );
+      	    controllers_[name] = new_handle;
+      	  }
         }
         else
         {
@@ -171,7 +171,7 @@ public:
         for (int j = 0 ; j < controller_list[i]["joints"].size() ; ++j)
         {
           controllers_[name]->addJoint(std::string(controller_list[i]["joints"][j]));
-          ROS_INFO_STREAM("\n"<<std::string(controller_list[i]["joints"][j])<<"\n");
+          ROS_DEBUG_STREAM_NAMED("joint_list","\n"<<std::string(controller_list[i]["joints"][j])<<"\n");
         }
       }
       catch (...)

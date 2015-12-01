@@ -60,25 +60,24 @@ public:
 
   virtual bool sendTrajectory(const moveit_msgs::RobotTrajectory &trajectory)
   {
-    ROS_DEBUG_STREAM("MultiDOFFollowJointTrajectoryController: new trajectory to " << name_);
+    ROS_DEBUG_STREAM_NAMED("debug_multidof_handle","MultiDOFFollowJointTrajectoryController: new trajectory to " << name_);
 
     if (!controller_action_client_)
       return false;
 
       /*
-       * This should never happen as the moveit_simple_controller_manager loads
-       * MOVEIT_PLUGINS_FOLLOW_TRAJECTORY_CONTROLLER_HANDLE for single-dof joints
+       * This checks if moveit_simple_controller_manager is correctly configured to load
+       *  MOVEIT_PLUGINS_MULTI_DOF_FOLLOW_JOINT_CONTROLLER_HANDLE for multi-dof joints
        */
     if (!trajectory.joint_trajectory.points.empty())
     {
-      ROS_ERROR("MultiDOFFollowJointTrajectoryController: %s cannot execute single-dof trajectories. Check moveit_simple_controller_manager to load MOVEIT_PLUGINS_FOLLOW_TRAJECTORY_CONTROLLER_HANDLE correctly", name_.c_str());
-      return false;
+      ROS_WARN("MultiDOFFollowJointTrajectoryController: %s cannot execute single-dof trajectories. Check moveit_simple_controller_manager to load MOVEIT_PLUGINS_FOLLOW_TRAJECTORY_CONTROLLER_HANDLE correctly", name_.c_str());
     }
 
     if (done_)
-      ROS_DEBUG_STREAM("MultiDOFFollowJointTrajectoryController: sending trajectory to " << name_);
+      ROS_DEBUG_STREAM_NAMED("debug_multidof_handle","MultiDOFFollowJointTrajectoryController: sending trajectory to " << name_);
     else
-      ROS_DEBUG_STREAM("MultiDOFFollowJointTrajectoryController: sending continuation for the currently executed trajectory to " << name_);
+      ROS_DEBUG_STREAM_NAMED("debug_multidof_handle","MultiDOFFollowJointTrajectoryController: sending continuation for the currently executed trajectory to " << name_);
 
     control_msgs::MultiDOFFollowJointTrajectoryGoal goal;
     goal.trajectory = trajectory.multi_dof_joint_trajectory;
@@ -121,7 +120,7 @@ protected:
 
   void controllerActiveCallback()
   {
-    ROS_DEBUG_STREAM("MultiDOFFollowJointTrajectoryController: " << name_ << " started execution");
+    ROS_DEBUG_STREAM_NAMED("debug_multidof_handle","MultiDOFFollowJointTrajectoryController: " << name_ << " started execution");
   }
 
   void controllerFeedbackCallback(const control_msgs::MultiDOFFollowJointTrajectoryFeedbackConstPtr& feedback)

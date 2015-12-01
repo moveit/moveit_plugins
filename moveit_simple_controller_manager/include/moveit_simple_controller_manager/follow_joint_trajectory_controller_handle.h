@@ -64,13 +64,12 @@ public:
       return false;
 
     /*
-     * This should never happen as the moveit_simple_controller_manager now loads
-     * MULTI_DOF_FOLLOW_JOINT_CONTROLLER_HANDLE for multi-dof joints
+     * This checks if moveit_simple_controller_manager is correctly configured to load
+     * MOVEIT_PLUGINS_FOLLOW_TRAJECTORY_CONTROLLER_HANDLE for single-dof joints
      */
     if (!trajectory.multi_dof_joint_trajectory.points.empty())
     {
-      ROS_ERROR("FollowJointTrajectoryController: %s cannot execute multi-dof trajectories. Check moveit_simple_controller_manager to load MOVEIT_PLUGINS_MULTI_DOF_FOLLOW_JOINT_CONTROLLER_HANDLE correctly", name_.c_str());
-      return false;
+      ROS_WARN("FollowJointTrajectoryController: %s cannot execute multi-dof trajectories. Check moveit_simple_controller_manager to load MOVEIT_PLUGINS_MULTI_DOF_FOLLOW_JOINT_CONTROLLER_HANDLE correctly", name_.c_str());
     }
 
     if (done_)
