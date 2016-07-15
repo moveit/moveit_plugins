@@ -38,6 +38,7 @@
 #include <moveit/controller_manager/controller_manager.h>
 #include <sensor_msgs/JointState.h>
 #include <pluginlib/class_list_macros.h>
+#include <boost/thread.hpp>
 #include <map>
 
 namespace moveit_fake_controller_manager
@@ -59,6 +60,11 @@ public:
     ROS_INFO("%s", ss.str().c_str());
     pub_ = nh_.advertise<sensor_msgs::JointState>("fake_controller_joint_states", 100, false);
   }
+
+  ~FakeControllerHandle()
+  {
+      thread_.join();
+  }
   
   void getJoints(std::vector<std::string> &joints) const
   {
@@ -67,42 +73,68 @@ public:
   
   virtual bool sendTrajectory(const moveit_msgs::RobotTrajectory &t)
   {
+    cancelTrajectory(); // cancel any previous fake motion
+    cancel_ = false;
+    thread_ = boost::thread(boost::bind(&FakeControllerHandle::execTrajectory, this, t));
+    return true;
+  }
+
+  void execTrajectory(const moveit_msgs::RobotTrajectory &t)
+  {
     ROS_INFO("Fake execution of trajectory");
-    if (!t.joint_trajectory.points.empty())
-    {
-      sensor_msgs::JointState js;
-      js.header = t.joint_trajectory.header;
-      js.name = t.joint_trajectory.joint_names;
-      js.position = t.joint_trajectory.points.back().positions;
-      js.velocity = t.joint_trajectory.points.back().velocities;
-      js.effort = t.joint_trajectory.points.back().effort;
+    sensor_msgs::JointState js;
+    js.header = t.joint_trajectory.header;
+    js.name = t.joint_trajectory.joint_names;
+
+    // publish joint states for all intermediate via points of the trajectory
+    // no further interpolation
+    ros::Time startTime = ros::Time::now();
+    for (std::vector<trajectory_msgs::JointTrajectoryPoint>::const_iterator
+         via = t.joint_trajectory.points.begin(), end = t.joint_trajectory.points.end(); !cancel_ && via != end; ++via) {
+      js.position = via->positions;
+      js.velocity = via->velocities;
+      js.effort = via->effort;
+
+      ros::Duration waitTime = via->time_from_start - (ros::Time::now() - startTime);
+      if (waitTime.toSec() > 1e-3) {
+          ROS_DEBUG("Fake execution: waiting %0.1fs for next via point, %ld remaining", waitTime.toSec(), end-via);
+          waitTime.sleep();
+      }
       pub_.publish(js);
     }
-    
-    return true;
+    ROS_DEBUG("Fake execution of trajectory: done");
+  }
+
+  void cancelTrajectory()
+  {
+      cancel_ = true;
+      thread_.join();
   }
   
   virtual bool cancelExecution()
-  {   
-    ROS_INFO("Fake trajectory execution cancel");
+  {
+    cancelTrajectory();
+    ROS_INFO("Fake trajectory execution cancelled");
     return true;
   }
   
   virtual bool waitForExecution(const ros::Duration &)
   {
-    sleep(1);
+    thread_.join();
     return true;
   }
   
   virtual moveit_controller_manager::ExecutionStatus getLastExecutionStatus()
   {
-    return moveit_controller_manager::ExecutionStatus(moveit_controller_manager::ExecutionStatus::SUCCEEDED);
+    return moveit_controller_manager::ExecutionStatus::SUCCEEDED;
   }
   
 private:
   ros::NodeHandle nh_;
   std::vector<std::string> joints_;
   ros::Publisher pub_;
+  bool cancel_;
+  boost::thread thread_;
 };
 
 
