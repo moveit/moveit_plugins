@@ -21,3 +21,9 @@ controller_list:
   - name: fake_gripper_controller
     joints:
       []
+
+In order to load an initial pose, one can have a list of (group, pose) pairs as follows:
+
+initial:
+  - group: arm
+    pose:  home

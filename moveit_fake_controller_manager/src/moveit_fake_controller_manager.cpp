@@ -36,13 +36,16 @@
 
 #include "moveit_fake_controllers.h"
 #include <ros/ros.h>
+#include <moveit/robot_state/robot_state.h>
+#include <moveit/robot_model_loader/robot_model_loader.h>
 #include <sensor_msgs/JointState.h>
 #include <map>
 #include <iterator>
 
 namespace moveit_fake_controller_manager
 {
-const std::string DEFAULT_TYPE = "interpolation";
+static const std::string DEFAULT_TYPE = "interpolation";
+static const std::string ROBOT_DESCRIPTION = "robot_description";
 
 class MoveItFakeControllerManager : public moveit_controller_manager::MoveItControllerManager
 {
@@ -64,6 +67,15 @@ public:
     }
 
     pub_ = node_handle_.advertise<sensor_msgs::JointState>("fake_controller_joint_states", 100, false);
+
+    /* publish initial pose */
+    XmlRpc::XmlRpcValue initial;
+    if (node_handle_.getParam("initial", initial))
+    {
+      sensor_msgs::JointState js = loadInitialJointValues(initial);
+      js.header.stamp = ros::Time::now();
+      pub_.publish(js);
+    }
 
     /* actually create each controller */
     for (int i = 0; i < controller_list.size(); ++i)
@@ -102,6 +114,75 @@ public:
         ROS_ERROR("MoveItFakeControllerManager: Unable to parse controller information");
       }
     }
+  }
+
+  sensor_msgs::JointState loadInitialJointValues(XmlRpc::XmlRpcValue& param) const
+  {
+    sensor_msgs::JointState js;
+
+    if (param.getType() != XmlRpc::XmlRpcValue::TypeArray || param.size() == 0)
+    {
+      ROS_ERROR_ONCE_NAMED("loadInitialJointValues", "Parameter 'initial' should be an array of (group, pose) structs.");
+      return js;
+    }
+
+    robot_model_loader::RobotModelLoader robot_model_loader(ROBOT_DESCRIPTION);
+    robot_model::RobotModelPtr robot_model = robot_model_loader.getModel();
+    typedef std::map<std::string, double> JointPoseMap;
+    JointPoseMap joints;
+
+    for (int i = 0, end = param.size(); i != end; ++i)
+    {
+      try
+      {
+        std::string group_name = std::string(param[i]["group"]);
+        std::string pose_name = std::string(param[i]["pose"]);
+        if (!robot_model->hasJointModelGroup(group_name))
+        {
+          ROS_WARN_STREAM_NAMED("loadInitialJointValues", "Unknown joint model group: " << group_name);
+          continue;
+        }
+        moveit::core::JointModelGroup* jmg = robot_model->getJointModelGroup(group_name);
+        moveit::core::RobotState robot_state(robot_model);
+        const std::vector<std::string> &joint_names = jmg->getActiveJointModelNames();
+
+        if (!robot_state.setToDefaultValues(jmg, pose_name))
+        {
+          ROS_WARN_NAMED("loadInitialJointValues", "Unknown pose '%s' for group '%s'.", pose_name.c_str(), group_name.c_str());
+          continue;
+        }
+        ROS_INFO_NAMED("loadInitialJointValues", "Set joints of group '%s' to pose '%s'.", group_name.c_str(), pose_name.c_str());
+
+        for (std::vector<std::string>::const_iterator jit = joint_names.begin(), end = joint_names.end(); jit != end; ++jit)
+        {
+          const moveit::core::JointModel* jm = robot_state.getJointModel(*jit);
+          if (!jm)
+          {
+            ROS_WARN_STREAM_NAMED("loadInitialJointValues", "Unknown joint: " << *jit);
+            continue;
+          }
+          if (jm->getVariableCount() != 1)
+          {
+            ROS_WARN_STREAM_NAMED("loadInitialJointValues", "Cannot handle multi-variable joint: " << *jit);
+            continue;
+          }
+
+          joints[*jit] = robot_state.getJointPositions(jm)[0];
+        }
+      }
+      catch (...)
+      {
+        ROS_ERROR_ONCE_NAMED("loadInitialJointValues", "Unable to parse initial pose information.");
+      }
+    }
+
+    // fill the joint state
+    for (JointPoseMap::const_iterator it = joints.begin(), end = joints.end(); it != end; ++it)
+    {
+      js.name.push_back(it->first);
+      js.position.push_back(it->second);
+    }
+    return js;
   }
 
   virtual ~MoveItFakeControllerManager()
