@@ -106,8 +106,10 @@ public:
           controllers_[name].reset(new LastPointController(name, joints, pub_));
         else if (type == "via points")
           controllers_[name].reset(new ViaPointController(name, joints, pub_));
-        else
+        else if (type == "interpolate")
           controllers_[name].reset(new InterpolatingController(name, joints, pub_));
+        else
+          ROS_ERROR_STREAM("Unknown fake controller type: " << type);
       }
       catch (...)
       {

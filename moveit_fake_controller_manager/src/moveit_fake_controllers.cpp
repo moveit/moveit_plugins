@@ -39,6 +39,7 @@
 #include <ros/param.h>
 #include <sensor_msgs/JointState.h>
 #include <boost/thread.hpp>
+#include <limits>
 
 namespace moveit_fake_controller_manager
 {
@@ -103,7 +104,7 @@ bool LastPointController::cancelExecution()
 
 bool LastPointController::waitForExecution(const ros::Duration &)
 {
-  ros::Duration(0.5).sleep(); // give some time to receive the published JointState
+  ros::Duration(0.5).sleep();  // give some time to receive the published JointState
   return true;
 }
 
@@ -128,7 +129,7 @@ void ThreadedController::cancelTrajectory()
 
 bool ThreadedController::sendTrajectory(const moveit_msgs::RobotTrajectory &t)
 {
-  cancelTrajectory(); // cancel any previous fake motion
+  cancelTrajectory();  // cancel any previous fake motion
   cancel_ = false;
   status_ = moveit_controller_manager::ExecutionStatus::PREEMPTED;
   thread_ = boost::thread(boost::bind(&ThreadedController::execTrajectory, this, t));
@@ -178,14 +179,17 @@ void ViaPointController::execTrajectory(const moveit_msgs::RobotTrajectory &t)
   // no further interpolation
   ros::Time startTime = ros::Time::now();
   for (std::vector<trajectory_msgs::JointTrajectoryPoint>::const_iterator
-       via = t.joint_trajectory.points.begin(), end = t.joint_trajectory.points.end(); !cancelled() && via != end; ++via) {
+       via = t.joint_trajectory.points.begin(), end = t.joint_trajectory.points.end();
+       !cancelled() && via != end; ++via)
+  {
     js.position = via->positions;
     js.velocity = via->velocities;
     js.effort = via->effort;
 
     ros::Duration waitTime = via->time_from_start - (ros::Time::now() - startTime);
-    if (waitTime.toSec() > 1e-3) {
-      ROS_DEBUG("Fake execution: waiting %0.1fs for next via point, %ld remaining", waitTime.toSec(), end-via);
+    if (waitTime.toSec() > std::numeric_limits<float>::epsilon())
+    {
+      ROS_DEBUG("Fake execution: waiting %0.1fs for next via point, %ld remaining", waitTime.toSec(), end - via);
       waitTime.sleep();
     }
     js.header.stamp = ros::Time::now();
@@ -216,8 +220,10 @@ void interpolate(sensor_msgs::JointState &js,
                  const ros::Duration &elapsed)
 {
   double duration = (next.time_from_start - prev.time_from_start).toSec();
-  double alpha = duration > std::numeric_limits<double>::epsilon() ? (elapsed - prev.time_from_start).toSec() / duration
-                                                                   : 1.0;
+  double alpha = 1.0;
+  if (duration > std::numeric_limits<double>::epsilon())
+    alpha = (elapsed - prev.time_from_start).toSec() / duration;
+
   js.position.resize(prev.positions.size());
   for (std::size_t i = 0, end = prev.positions.size(); i < end; ++i)
   {
@@ -285,4 +291,4 @@ void InterpolatingController::execTrajectory(const moveit_msgs::RobotTrajectory 
   ROS_DEBUG("Fake execution of trajectory: done");
 }
 
-} // end namespace moveit_fake_controller_manager
+}  // end namespace moveit_fake_controller_manager

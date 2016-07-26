@@ -41,6 +41,9 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/thread/thread.hpp>
 
+#ifndef MOVEIT_FAKE_CONTROLLERS
+#define MOVEIT_FAKE_CONTROLLERS
+
 namespace moveit_fake_controller_manager
 {
 
@@ -84,7 +87,10 @@ public:
   virtual moveit_controller_manager::ExecutionStatus getLastExecutionStatus();
 
 protected:
-  bool cancelled() { return cancel_; }
+  bool cancelled()
+  {
+    return cancel_;
+  }
 
 private:
   virtual void execTrajectory(const moveit_msgs::RobotTrajectory &t) = 0;
@@ -122,3 +128,5 @@ private:
 };
 
 }
+
+#endif
