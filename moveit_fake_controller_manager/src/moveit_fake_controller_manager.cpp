@@ -39,6 +39,7 @@
 #include <moveit/robot_state/robot_state.h>
 #include <moveit/robot_model_loader/robot_model_loader.h>
 #include <sensor_msgs/JointState.h>
+#include <pluginlib/class_list_macros.h>
 #include <map>
 #include <iterator>
 
@@ -275,6 +276,5 @@ protected:
 
 }  // end namespace moveit_fake_controller_manager
 
-#include <pluginlib/class_list_macros.h>
 PLUGINLIB_EXPORT_CLASS(moveit_fake_controller_manager::MoveItFakeControllerManager,
                        moveit_controller_manager::MoveItControllerManager);

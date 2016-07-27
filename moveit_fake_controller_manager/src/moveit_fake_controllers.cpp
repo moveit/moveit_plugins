@@ -118,7 +118,7 @@ ThreadedController::ThreadedController(const std::string &name,
 
 ThreadedController::~ThreadedController()
 {
-  thread_.join();
+  ThreadedController::cancelTrajectory();
 }
 
 void ThreadedController::cancelTrajectory()
