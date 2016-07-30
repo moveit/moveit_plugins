@@ -1,6 +1,7 @@
 /*********************************************************************
  * Software License Agreement (BSD License)
  *
+ *  Copyright (c) 2015, Fetch Robotics Inc.
  *  Copyright (c) 2013, Unbounded Robotics Inc.
  *  Copyright (c) 2012, Willow Garage, Inc.
  *  All rights reserved.
@@ -39,6 +40,7 @@
 #include <moveit_simple_controller_manager/action_based_controller_handle.h>
 #include <moveit_simple_controller_manager/gripper_controller_handle.h>
 #include <moveit_simple_controller_manager/follow_joint_trajectory_controller_handle.h>
+#include <moveit_simple_controller_manager/multi_dof_follow_joint_trajectory_handle.h>
 #include <pluginlib/class_list_macros.h>
 #include <algorithm>
 #include <map>
@@ -145,6 +147,15 @@ public:
             controllers_[name] = new_handle;
           }
         }
+        else if (type == "MultiDOFFollowJointTrajectory")
+        {
+          new_handle.reset(new MultiDOFFollowJointTrajectoryControllerHandle(name, action_ns));
+          if (static_cast<MultiDOFFollowJointTrajectoryControllerHandle*>(new_handle.get())->isConnected())
+      	  {
+      	    ROS_INFO_STREAM("MoveitSimpleControllerManager: Added MultiDOFFollowJointTrajectory controller for " << name );
+      	    controllers_[name] = new_handle;
+      	  }
+        }
         else
         {
           ROS_ERROR("Unknown controller type: '%s'", type.c_str());
@@ -155,10 +166,13 @@ public:
           controllers_.erase(name);
           continue;
         }
-        
+
         /* add list of joints, used by controller manager and moveit */
         for (int j = 0 ; j < controller_list[i]["joints"].size() ; ++j)
+        {
           controllers_[name]->addJoint(std::string(controller_list[i]["joints"][j]));
+          ROS_DEBUG_STREAM_NAMED("joint_list","\n"<<std::string(controller_list[i]["joints"][j])<<"\n");
+        }
       }
       catch (...)
       {
