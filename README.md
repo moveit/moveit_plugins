@@ -1,9 +1,7 @@
-MoveIt Plugins
-==============
+# This Repository Has Moved
 
-This is a collection of plugins for MoveIt:
- - moveit_simple_controller_manager - A very basic controller manager plugin. Can connect to FollowJointTrajectoryAction and GripperCommandAction servers.
+The new location as of August 5th, 2016 is [https://github.com/ros-planning/moveit](https://github.com/ros-planning/moveit)
 
-## Build Status
+See [migration notes](https://github.com/davetcoleman/moveit_merge/blob/master/README.md) for more details.
 
-[![Build Status](https://travis-ci.org/ros-planning/moveit_plugins.png?branch=hydro-devel)](https://travis-ci.org/ros-planning/moveit_plugins)
+Please do not open new pull requests or issues in this old location.
